@@ -1,0 +1,5 @@
+ticket_id,agent,start_time,end_time,category
+T1001,Alice,2025-11-03T09:10:00,2025-11-03T09:25:00,incident
+T1002,Bob,2025-11-03T10:00:00,2025-11-03T10:20:00,request
+T1003,Alice,2025-11-03T11:00:00,2025-11-03T11:45:00,change
+T1004,Charlie,2025-11-04T13:00:00,2025-11-04T13:30:00,incident
