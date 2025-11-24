@@ -1,0 +1,44 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Productivity Tracker Demo</title></head>
+<body>
+<h2>Productivity Tracker Demo</h2>
+<input id="tickets" type="file" accept=".csv" /> Tickets<br/>
+<input id="calls" type="file" accept=".csv" /> Calls<br/>
+Start: <input id="start" type="datetime-local" value="2025-11-03T00:00" />
+End: <input id="end" type="datetime-local" value="2025-11-05T23:59" />
+<button id="process">Process</button>
+<button id="download">Export CSV</button>
+<div id="status"></div>
+<pre id="out"></pre>
+<script>
+async function fileToFormData(fileInput, form, name){
+  const f = document.getElementById(fileInput).files[0];
+  if(f) form.append(name, f);
+}
+document.getElementById('process').onclick = async () => {
+  const form = new FormData();
+  await fileToFormData('tickets', form, 'tickets');
+  await fileToFormData('calls', form, 'calls');
+  form.append('start_period', document.getElementById('start').value + ':00');
+  form.append('end_period', document.getElementById('end').value + ':00');
+  const r = await fetch('http://localhost:8000/process', {method:'POST', body: form});
+  const data = await r.json();
+  document.getElementById('out').innerText = JSON.stringify(data, null, 2);
+}
+document.getElementById('download').onclick = async () => {
+  const form = new FormData();
+  await fileToFormData('tickets', form, 'tickets');
+  await fileToFormData('calls', form, 'calls');
+  form.append('start_period', document.getElementById('start').value + ':00');
+  form.append('end_period', document.getElementById('end').value + ':00');
+  const r = await fetch('http://localhost:8000/export/csv', {method:'POST', body: form});
+  if(r.ok){
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download='productivity_export.csv'; a.click();
+  } else {
+    alert('Export failed');
+  }
+}
+</script>
+</body></html>
