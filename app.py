@@ -1,12 +1,4 @@
-# Retry: create Streamlit-only project zip with Option A heatmap.
-import os, zipfile, textwrap, shutil
-proj_root = "/mnt/data/productivity_tracker_streamlit"
-if os.path.exists(proj_root):
-    shutil.rmtree(proj_root)
-os.makedirs(proj_root, exist_ok=True)
-uploaded_log_path = "/mnt/data/logs-lalithagomathi-prodtracker-main-backend-main.py-2025-11-24T12_15_30.874Z.txt"
 
-app_content = textwrap.dedent(f'''
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -84,12 +76,12 @@ def compute_metrics(events, start_p, end_p, overlap_mode, default_shift_hours):
             productive = sum((e - s).total_seconds() for s,e in merged)
         utilization = productive / scheduled_seconds if scheduled_seconds>0 else 0
         cat_avg = adf.groupby('category')['duration_s'].mean().to_dict()
-        results[a] = {{
+        results[a] = {
             'productive_seconds': int(productive),
             'scheduled_seconds': int(scheduled_seconds),
             'utilization': round(utilization,4),
-            'avg_handle_time_by_category_seconds': {{k:int(v) for k,v in cat_avg.items()}}
-        }}
+            'avg_handle_time_by_category_seconds': {k:int(v) for k,v in cat_avg.items()}
+        }
     return results
 
 def build_heatmap(events, start_p, end_p):
@@ -102,7 +94,7 @@ def build_heatmap(events, start_p, end_p):
             if bucket_end <= s:
                 bucket_end = s + pd.Timedelta(hours=1)
             part_end = min(e, bucket_end)
-            records.append({{'date': s.date(), 'hour': s.hour, 'seconds': (part_end - s).total_seconds()}})
+            records.append({'date': s.date(), 'hour': s.hour, 'seconds': (part_end - s).total_seconds()})
             s = part_end
     if not records:
         return None
@@ -148,18 +140,18 @@ if st.button("Process"):
     st.header("Per-agent summary")
     rows = []
     for a,r in results.items():
-        rows.append({{'agent': a,
+        rows.append({'agent': a,
                       'productive_h': r['productive_seconds']/3600,
                       'scheduled_h': r['scheduled_seconds']/3600,
                       'util_percent': r['utilization']*100,
-                      'idle_h': max(0,(r['scheduled_seconds']-r['productive_seconds'])/3600)}})
+                      'idle_h': max(0,(r['scheduled_seconds']-r['productive_seconds'])/3600)})
     df_report = pd.DataFrame(rows)
     st.dataframe(df_report)
     st.header("Avg handle time by category (sec)")
     cat_rows = []
     for a,r in results.items():
         for cat,sec in r['avg_handle_time_by_category_seconds'].items():
-            cat_rows.append({{'agent': a, 'category': cat, 'avg_seconds': sec}})
+            cat_rows.append({'agent': a, 'category': cat, 'avg_seconds': sec})
     if cat_rows:
         st.table(pd.DataFrame(cat_rows))
     st.header("Day/Hour heatmap (hours)")
@@ -173,43 +165,7 @@ if st.button("Process"):
             color=alt.Color('hours:Q', title='Hours', scale=alt.Scale(scheme='greens'))
         ).properties(width=900, height=300)
         st.altair_chart(chart, use_container_width=True)
-    # export CSV
     csv_bytes = df_report.to_csv(index=False).encode('utf-8')
     st.download_button("Export per-agent CSV", csv_bytes, file_name="per_agent_report.csv", mime='text/csv')
     st.caption("Original deployment log path (included in package):")
-    st.write("{uploaded_log_path}")
-''')
-
-with open(os.path.join(proj_root, "app.py"), "w", encoding="utf-8") as f:
-    f.write(app_content)
-
-# requirements
-with open(os.path.join(proj_root, "requirements.txt"), "w", encoding="utf-8") as f:
-    f.write("streamlit\npandas\nnumpy\naltair\n")
-
-# sample data
-os.makedirs(os.path.join(proj_root, "sample_data"), exist_ok=True)
-with open(os.path.join(proj_root, "sample_data", "tickets.csv"), "w", encoding="utf-8") as f:
-    f.write("ticket_id,agent,start_time,end_time,category\nT1001,Alice,2025-11-03T09:10:00,2025-11-03T09:25:00,incident\nT1002,Bob,2025-11-03T10:00:00,2025-11-03T10:20:00,request\nT1003,Alice,2025-11-03T11:00:00,2025-11-03T11:45:00,change\n")
-with open(os.path.join(proj_root, "sample_data", "calls.csv"), "w", encoding="utf-8") as f:
-    f.write("call_id,agent,start_time,end_time,category\nC2001,Alice,2025-11-03T09:30:00,2025-11-03T09:40:00,call\nC2002,Bob,2025-11-03T10:25:00,2025-11-03T10:35:00,call\n")
-
-# include log file
-if os.path.exists(uploaded_log_path):
-    shutil.copy(uploaded_log_path, os.path.join(proj_root, os.path.basename(uploaded_log_path)))
-else:
-    with open(os.path.join(proj_root, "deployment_log.txt"), "w", encoding="utf-8") as f:
-        f.write("Log not found at: " + uploaded_log_path)
-
-# README
-with open(os.path.join(proj_root, "README.md"), "w", encoding="utf-8") as f:
-    f.write("Streamlit Productivity Tracker (Option A heatmap)\\nRun: streamlit run app.py\\n")
-
-# zip
-zip_path = "/mnt/data/productivity_tracker_streamlit.zip"
-with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
-    for root, _, files in os.walk(proj_root):
-        for fname in files:
-            z.write(os.path.join(root, fname), os.path.relpath(os.path.join(root, fname), proj_root))
-zip_path
-
+    st.write("/mnt/data/logs-lalithagomathi-prodtracker-main-backend-main.py-2025-11-24T12_15_30.874Z.txt")
